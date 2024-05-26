@@ -1,14 +1,14 @@
-use std::{fs::File, io::Read};
+use std::io::Read;
 
 use base64::{
     engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
     Engine as _,
 };
 
-use crate::Base64Format;
+use crate::{get_reader, Base64Format};
 use anyhow::Result;
 
-pub fn process_encode(input: &str, format: Base64Format) -> Result<()> {
+pub fn process_encode(input: &str, format: Base64Format) -> Result<String> {
     let mut reader = get_reader(input)?;
     let mut buf = Vec::new();
 
@@ -19,11 +19,10 @@ pub fn process_encode(input: &str, format: Base64Format) -> Result<()> {
         Base64Format::Standard => STANDARD.encode(&buf),
     };
 
-    println!("{}", encoded);
-    Ok(())
+    Ok(encoded)
 }
 
-pub fn process_decode(input: &str, format: Base64Format) -> Result<()> {
+pub fn process_decode(input: &str, format: Base64Format) -> Result<Vec<u8>> {
     let mut reader = get_reader(input)?;
     let mut buf = String::new();
 
@@ -36,18 +35,7 @@ pub fn process_decode(input: &str, format: Base64Format) -> Result<()> {
         Base64Format::Standard => STANDARD.decode(buf)?,
     };
 
-    let decoded = String::from_utf8(decoded)?;
-    println!("{}", decoded);
-    Ok(())
-}
-
-fn get_reader(input: &str) -> Result<Box<dyn Read>> {
-    let reader: Box<dyn Read> = if input == "-" {
-        Box::new(std::io::stdin())
-    } else {
-        Box::new(File::open(input)?)
-    };
-    Ok(reader)
+    Ok(decoded)
 }
 
 #[cfg(test)]
@@ -55,16 +43,18 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_process_encode() {
+    fn test_process_encode() -> Result<()> {
         let input = "Cargo.toml";
         let format = Base64Format::Standard;
         assert!(process_encode(input, format).is_ok());
+        Ok(())
     }
 
     #[test]
-    fn test_process_decode() {
+    fn test_process_decode() -> Result<()> {
         let input = "fixtures/b64.txt";
         let format = Base64Format::UrlSafe;
-        assert!(process_decode(input, format).is_ok());
+        process_decode(input, format)?;
+        Ok(())
     }
 }
